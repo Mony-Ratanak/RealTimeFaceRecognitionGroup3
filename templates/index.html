@@ -4,424 +4,109 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Face Recognition System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-<style>
-        :root {
-            --primary: #2563eb;
-            --primary-dark: #1d4ed8;
-            --success: #059669;
-            --danger: #dc2626;
-            --warning: #d97706;
-            --background: #f8fafc;
-            --card-bg: #ffffff;
-            --text: #1e293b;
-            --border: #e2e8f0;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-        }
-
-        body {
-            background: var(--background);
-            color: var(--text);
-            line-height: 1.5;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 3rem;
-            padding: 2rem;
-            background: var(--card-bg);
-            border-radius: 1rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        .header h1 {
-            color: var(--primary);
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-            font-weight: 800;
-        }
-
-        .header p {
-            color: #64748b;
-            font-size: 1.1rem;
-        }
-
-        .dashboard {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            margin-bottom: 2rem;
-        }
-
-        .stats-card {
-            background: var(--card-bg);
-            padding: 1.5rem;
-            border-radius: 1rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        .stats-card h3 {
-            color: #64748b;
-            font-size: 0.875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.5rem;
-        }
-
-        .stats-value {
-            font-size: 1.875rem;
-            font-weight: 700;
-            color: var(--text);
-        }
-
-        .main-content {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 2rem;
-        }
-
-        .card {
-            background: var(--card-bg);
-            border-radius: 1rem;
-            padding: 1.5rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid var(--border);
-        }
-
-        .card-header i {
-            font-size: 1.5rem;
-            color: var(--primary);
-            margin-right: 0.75rem;
-        }
-
-        .card-header h2 {
-            color: var(--text);
-            font-size: 1.25rem;
-            font-weight: 600;
-        }
-
-        .image-container {
-            aspect-ratio: 1;
-            background: #f1f5f9;
-            border: 2px dashed var(--border);
-            border-radius: 0.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            position: relative;
-            transition: all 0.3s ease;
-        }
-
-        .image-container img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-        }
-
-        .placeholder {
-            color: #94a3b8;
-            text-align: center;
-            padding: 2rem;
-        }
-
-        .placeholder i {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-        }
-
-        .controls {
-            margin-top: 2rem;
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            border: none;
-            cursor: pointer;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.2s;
-            font-size: 0.875rem;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-dark);
-        }
-
-        .btn-secondary {
-            background: #e2e8f0;
-            color: var(--text);
-        }
-
-        .btn-secondary:hover {
-            background: #cbd5e1;
-        }
-
-        .result-panel {
-            margin-top: 2rem;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            display: none;
-            animation: fadeIn 0.3s ease;
-        }
-
-        .result-panel.success {
-            background: #f0fdf4;
-            color: var(--success);
-            border: 1px solid #bbf7d0;
-        }
-
-        .result-panel.error {
-            background: #fef2f2;
-            color: var(--danger);
-            border: 1px solid #fecaca;
-        }
-
-        .match-details {
-            margin-top: 1.5rem;
-            display: none;
-            animation: slideUp 0.3s ease;
-        }
-
-        .match-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1rem;
-            background: #f8fafc;
-            border-radius: 0.5rem;
-            overflow: hidden;
-        }
-
-        .match-table td {
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .match-table td:first-child {
-            font-weight: 500;
-            color: #64748b;
-            width: 40%;
-        }
-
-        .progress-bar {
-            height: 0.5rem;
-            background: #e2e8f0;
-            border-radius: 1rem;
-            overflow: hidden;
-            margin-top: 0.5rem;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: var(--primary);
-            transition: width 0.3s ease;
-        }
-
-        .loading-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.9);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            gap: 1rem;
-            backdrop-filter: blur(4px);
-        }
-
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid #e2e8f0;
-            border-top: 3px solid var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        .processed-image {
-            margin-top: 1.5rem;
-            display: none;
-            animation: fadeIn 0.3s ease;
-        }
-
-        .processed-image h3 {
-            margin-bottom: 1rem;
-            color: #64748b;
-            font-size: 0.875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        @keyframes slideUp {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        #dropZone.dragover {
-            border-color: var(--primary);
-            background: #eff6ff;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 1rem;
-            }
-            
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-
-            .controls {
-                flex-direction: column;
-            }
-
-            .btn {
-                width: 100%;
-                justify-content: center;
-            }
-        }
-    </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Smart Face Recognition System</h1>
-            <p>Advanced facial recognition with real-time processing and analysis</p>
+
+<body class="bg-gray-100 text-gray-800 font-sans leading-relaxed">
+    <div class="container mx-auto px-4 py-8">
+        <div class="text-center mb-12 bg-white p-8 rounded-lg shadow-md">
+            <h1 class="text-blue-600 text-4xl font-extrabold mb-2">Smart Face Recognition System</h1>
+            <p class="text-gray-500 text-lg">Advanced facial recognition with real-time processing and analysis</p>
         </div>
 
-        <div class="dashboard">
-            <div class="stats-card">
-                <h3>Processing Time</h3>
-                <div class="stats-value" id="processingTime">-</div>
-            </div>
-            <div class="stats-card">
-                <h3>Match Confidence</h3>
-                <div class="stats-value" id="matchConfidenceStats">-</div>
-            </div>
-            <div class="stats-card">
-                <h3>Status</h3>
-                <div class="stats-value" id="systemStatus">Ready</div>
-            </div>
-        </div>
-
-        <div class="main-content">
-            <div class="card">
-                <div class="card-header">
-                    <i class="fas fa-upload"></i>
-                    <h2>Upload Image</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Upload Section -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="flex items-center mb-6 border-b-2 border-gray-200 pb-4">
+                    <i class="fas fa-upload text-blue-600 text-2xl mr-3"></i>
+                    <h2 class="text-xl font-semibold text-gray-800">Upload Image</h2>
                 </div>
-                <div class="image-container" id="dropZone">
-                    <div class="placeholder" id="uploadPlaceholder">
-                        <i class="fas fa-cloud-upload-alt"></i>
+                <div id="dropZone" class="relative border-2 border-dashed border-gray-300 bg-gray-100 rounded-lg p-6 flex justify-center items-center transition hover:border-blue-600 min-h-[400px]">
+                    <div id="uploadPlaceholder" class="text-center text-gray-500">
+                        <i class="fas fa-cloud-upload-alt text-4xl mb-4"></i>
                         <p>Drag & drop an image here<br>or click to upload</p>
                     </div>
-                    <img id="uploadedImage" style="display: none">
-                    <div class="loading-overlay" id="uploadLoading">
-                        <div class="loading-spinner"></div>
-                        <p>Processing image...</p>
+                    <img id="uploadedImage" class="hidden w-full max-h-96 object-contain">
+                    <div id="uploadLoading" class="hidden absolute inset-0 bg-white bg-opacity-90 flex flex-col items-center justify-center">
+                        <div class="loader border-4 border-gray-300 border-t-blue-600 rounded-full w-12 h-12 animate-spin"></div>
+                        <p class="mt-4 text-gray-600">Processing image...</p>
                     </div>
                 </div>
             </div>
 
-            <div class="card">
-                <div class="card-header">
-                    <i class="fas fa-user-check"></i>
-                    <h2>Match Result</h2>
+            <!-- Match Result Section -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="flex items-center mb-6 border-b-2 border-gray-200 pb-4">
+                    <i class="fas fa-user-check text-blue-600 text-2xl mr-3"></i>
+                    <h2 class="text-xl font-semibold text-gray-800">Match Result</h2>
                 </div>
-                <div class="image-container">
-                    <div class="placeholder" id="matchPlaceholder">
-                        <i class="fas fa-user-circle"></i>
+                <div class="relative border-2 border-dashed border-gray-300 bg-gray-100 rounded-lg p-6 flex justify-center items-center min-h-[400px]">
+                    <div id="matchPlaceholder" class="text-center text-gray-500">
+                        <i class="fas fa-user-circle text-4xl mb-4"></i>
                         <p>Matched face will appear here</p>
                     </div>
-                    <img id="matchedImage" style="display: none">
+                    <img id="matchedImage" class="hidden w-full max-h-96 object-contain">
                 </div>
-                <div class="match-details" id="matchDetails">
-                    <table class="match-table">
+                <div id="matchDetails" class="hidden mt-6">
+                    <table class="w-full text-sm text-left text-gray-600">
                         <tr>
-                            <td>Name:</td>
+                            <td class="font-medium text-gray-500 w-1/3">Name:</td>
                             <td id="matchName">-</td>
                         </tr>
                         <tr>
-                            <td>Confidence:</td>
+                            <td class="font-medium text-gray-500">Confidence:</td>
                             <td>
                                 <div id="matchConfidence">-</div>
-                                <div class="progress-bar">
-                                    <div class="progress-fill" id="confidenceFill"></div>
+                                <div class="w-full h-2 bg-gray-300 rounded-full mt-1">
+                                    <div id="confidenceFill" class="h-full bg-blue-600 rounded-full transition-all" style="width: 0%;"></div>
                                 </div>
                             </td>
                         </tr>
                         <tr>
-                            <td>Processing Time:</td>
+                            <td class="font-medium text-gray-500">Processing Time:</td>
                             <td id="matchTime">-</td>
                         </tr>
                     </table>
                 </div>
-                
-                <div class="processed-image" id="processedImageContainer">
-                    <h3>Processed Image with Detection</h3>
-                    <div class="image-container">
-                        <img id="processedImage">
+            </div>
+            
+
+        </div>
+        <!-- Processed Image -->
+        <div class="bg-white p-4 rounded-lg shadow-md  w-[70%] mx-auto mt-8">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="flex items-center mb-6 border-b-2 border-gray-200 pb-4">
+                    <i class="fas fa-user-check text-blue-600 text-2xl mr-3"></i>
+                    <h2 class="text-xl font-semibold text-gray-800">Processed Image</h2>
+                </div>
+                <!-- Processed Image Section -->
+                <div id="processedImageContainer" class="relative border-2 border-dashed border-gray-300 bg-gray-100 rounded-lg p-6 flex justify-center items-center min-h-[400px]">
+                    <!-- Placeholder -->
+                    <div id="processedImagePlaceholder" class="absolute text-center text-gray-500">
+                        <i class="fas fa-user-circle text-4xl mb-4"></i>
+                        <p>Processed image will appear here</p>
                     </div>
+                    <!-- Processed Image -->
+                    <img id="processedImage" class="hidden w-full max-h-[400px] object-contain">
                 </div>
             </div>
         </div>
+        
 
-        <div class="controls">
-            <input type="file" id="fileInput" accept="image/*" style="display: none">
-            <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+        <div class="flex justify-center items-center mt-12 gap-4">
+            <input type="file" id="fileInput" accept="image/*" class="hidden">
+            <button onclick="document.getElementById('fileInput').click()" class="bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 focus:ring focus:ring-blue-300 flex items-center gap-2">
                 <i class="fas fa-upload"></i>
                 Upload Image
             </button>
-            <button class="btn btn-secondary" onclick="resetUI()">
+            <button onclick="resetUI()" class="bg-gray-200 text-gray-700 py-2 px-6 rounded-lg hover:bg-gray-300 focus:ring focus:ring-gray-300 flex items-center gap-2">
                 <i class="fas fa-redo"></i>
                 Reset
             </button>
         </div>
 
-        <div id="resultPanel" class="result-panel"></div>
+        <div id="resultPanel" class="hidden mt-6 py-4 px-6 rounded-lg text-center"></div>
     </div>
 
     <script>
@@ -438,16 +123,16 @@
 
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
-            dropZone.classList.add('dragover');
+            dropZone.classList.add('border-blue-600', 'bg-blue-50');
         });
 
         dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('dragover');
+            dropZone.classList.remove('border-blue-600', 'bg-blue-50');
         });
 
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
-            dropZone.classList.remove('dragover');
+            dropZone.classList.remove('border-blue-600', 'bg-blue-50');
             const file = e.dataTransfer.files[0];
             if (file && file.type.startsWith('image/')) {
                 handleImageUpload(file);
@@ -473,8 +158,8 @@
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     uploadedImage.src = e.target.result;
-                    uploadedImage.style.display = 'block';
-                    dropZone.querySelector('.placeholder').style.display = 'none';
+                    uploadedImage.classList.remove('hidden');
+                    dropZone.querySelector('.text-center').classList.add('hidden');
                 };
                 reader.readAsDataURL(file);
 
@@ -483,12 +168,14 @@
 
                 if (response.match_found) {
                     showMatch(response);
-                    showResult(`Match found with ${response.similarity}`, 'success');
+                    showProcessedFromPath(response.processed_image);
+                    showResult(`Match found with ${response.similarity}`, 'bg-green-100 text-green-700');
                 } else {
-                    showResult(response.message, 'error');
+                    showProcessedFromPath(response.processed_image);
+                    showResult(response.message, 'bg-red-100 text-red-700');
                 }
             } catch (error) {
-                showResult(`Error: ${error.message}`, 'error');
+                showResult(`Error: ${error.message}`, 'bg-red-100 text-red-700');
             } finally {
                 showLoading(false);
             }
@@ -509,7 +196,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ image: base64Image })
+                body: JSON.stringify({ image: base64Image }),
             });
 
             if (!response.ok) {
@@ -521,32 +208,44 @@
 
         function showMatch(response) {
             matchedImage.src = `data:image/jpeg;base64,${response.matched_image}`;
-            matchedImage.style.display = 'block';
-            matchPlaceholder.style.display = 'none';
+            matchedImage.classList.remove('hidden');
+            matchPlaceholder.classList.add('hidden');
             document.getElementById('matchName').textContent = response.matched_name;
             document.getElementById('matchConfidence').textContent = response.similarity;
-            document.getElementById('matchTime').textContent = response.processing_time + ' seconds';
-            matchDetails.style.display = 'block';
+            document.getElementById('confidenceFill').style.width = `${response.similarity}%`;
+            document.getElementById('matchTime').textContent = `${response.processing_time} seconds`;
+            matchDetails.classList.remove('hidden');
         }
 
-        function showResult(message, type) {
+        function showProcessedFromPath(processedImagePath) {
+            const processedImage = document.getElementById('processedImage');
+            const processedImagePlaceholder = document.getElementById('processedImagePlaceholder');
+        
+            try {
+                processedImage.src = processedImagePath;
+                processedImage.classList.remove('hidden'); // Show the processed image
+                processedImagePlaceholder.classList.add('hidden'); // Hide the placeholder text
+            } catch (error) {
+                console.error('Error displaying processed image:', error);
+            }
+        }
+
+        function showResult(message, classes) {
             resultPanel.textContent = message;
-            resultPanel.className = `result-panel ${type}`;
-            resultPanel.style.display = 'block';
+            resultPanel.className = `mt-6 py-4 px-6 rounded-lg text-center ${classes}`;
+            resultPanel.classList.remove('hidden');
         }
 
         function showLoading(show) {
-            uploadLoading.style.display = show ? 'flex' : 'none';
+            uploadLoading.classList.toggle('hidden', !show);
         }
 
         function resetUI() {
-            uploadedImage.style.display = 'none';
-            matchedImage.style.display = 'none';
-            dropZone.querySelector('.placeholder').style.display = 'flex';
-            matchPlaceholder.style.display = 'flex';
-            resultPanel.style.display = 'none';
-            matchDetails.style.display = 'none';
-            fileInput.value = '';
+            const processedImage = document.getElementById('processedImage');
+            const processedImagePlaceholder = document.getElementById('processedImagePlaceholder');
+        
+            processedImage.classList.add('hidden'); // Hide the processed image
+            processedImagePlaceholder.classList.remove('hidden'); // Show the placeholder text
         }
     </script>
 </body>

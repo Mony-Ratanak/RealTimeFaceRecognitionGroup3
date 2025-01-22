@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 import face_recognition
 import os
@@ -12,6 +12,7 @@ import cv2
 import threading
 import pickle
 import time
+import csv
 
 app = Flask(__name__)
 CORS(app)
@@ -21,6 +22,7 @@ UPLOAD_FOLDER = 'uploads'
 KNOWN_PEOPLE_FOLDER = 'known_people'
 PROCESSED_FOLDER = 'processed_images'
 ENCODINGS_FILE = 'known_encodings.pkl'
+ATTENDANCE_FILE = 'Attendance_log.csv'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 FACE_DETECTION_MODEL = 'hog'
 DISTANCE_THRESHOLD = 0.45
@@ -56,14 +58,79 @@ def save_labeled_image(image, face_location, label, similarity, is_match=True):
     img = image.copy()
     top, right, bottom, left = face_location
     color = (0, 255, 0) if is_match else (0, 0, 255)
+    label = label.split('.')[0]  # Remove .jpg or other extensions
     cv2.rectangle(img, (left, top), (right, bottom), color, 2)
     label_text = f"{label} ({similarity:.1f}%)"
     cv2.putText(img, label_text, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = f"{label}_{timestamp}.jpg"
-    output_path = os.path.join(PROCESSED_FOLDER, filename)
+    filename = f"{label}_{timestamp}"
+    output_path = os.path.join(PROCESSED_FOLDER, filename + '.jpg')
     cv2.imwrite(output_path, img)
     return filename
+
+def log_attendance(name):
+    """Log attendance to a CSV file."""
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    file_exists = os.path.isfile(ATTENDANCE_FILE)
+    name = name.split('.')[0]  # Remove .jpg or other extensions
+    with open(ATTENDANCE_FILE, 'a', newline='') as csvfile:
+        fieldnames = ['Name', 'Timestamp']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        if not file_exists:
+            writer.writeheader()  # Write header only once
+        writer.writerow({'Name': name, 'Timestamp': timestamp})
+
+@app.route('/processed_images/<filename>')
+def serve_processed_image(filename):
+    """Serve processed images dynamically"""
+    try:
+        return send_from_directory(PROCESSED_FOLDER, filename + '.jpg')
+    except Exception as e:
+        return jsonify({'error': f"File not found: {str(e)}"}), 404
+
+@app.route('/api/recognize', methods=['POST'])
+def recognize_face():
+    try:
+        start_time = time.time()
+        data = request.json
+        if 'image' not in data:
+            return jsonify({'error': 'No image provided'}), 400
+        image_data = base64.b64decode(data['image'].split(',')[1])
+        image = Image.open(io.BytesIO(image_data))
+        processed_image = preprocess_image(image)
+        face_locations = face_recognition.face_locations(processed_image, model=FACE_DETECTION_MODEL)
+        if not face_locations:
+            return jsonify({
+                'match_found': False,
+                'message': 'No face detected',
+                'processing_time': time.time() - start_time
+            }), 200
+        unknown_encoding = face_recognition.face_encodings(processed_image, face_locations, num_jitters=NUM_JITTERS)[0]
+        known_faces = load_known_faces()
+        best_match_name, best_similarity = find_best_match(unknown_encoding, known_faces)
+        if best_match_name:
+            # Log attendance
+            log_attendance(best_match_name)
+            output_filename = save_labeled_image(processed_image, face_locations[0], best_match_name, best_similarity)
+            with open(os.path.join(KNOWN_PEOPLE_FOLDER, best_match_name), 'rb') as img_file:
+                matched_image = base64.b64encode(img_file.read()).decode('utf-8')
+            return jsonify({
+                'match_found': True,
+                'matched_name': best_match_name,
+                'matched_image': matched_image,
+                'similarity': f"{best_similarity:.2f}%",
+                'processed_image': f"http://127.0.0.1:5000/processed_images/{output_filename}",
+                'processing_time': time.time() - start_time
+            }), 200
+        output_filename = save_labeled_image(processed_image, face_locations[0], "Unknown", 0, is_match=False)
+        return jsonify({
+            'match_found': False,
+            'message': 'No matching face found',
+            'processed_image': f"http://127.0.0.1:5000/processed_images/{output_filename}",
+            'processing_time': time.time() - start_time
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 def load_known_faces():
     """Load face encodings from cache or file"""
@@ -83,7 +150,7 @@ def load_known_faces():
                     image = face_recognition.load_image_file(path)
                     encodings = face_recognition.face_encodings(image, num_jitters=NUM_JITTERS)
                     if encodings:
-                        known_faces[filename] = encodings[0]
+                        known_faces[filename.split('.')[0]] = encodings[0]
                 except Exception as e:
                     print(f"Error loading {filename}: {str(e)}")
                     continue
@@ -107,48 +174,6 @@ def find_best_match(unknown_encoding, known_faces):
 @app.route('/')
 def home():
     return render_template('index.html')
-
-@app.route('/api/recognize', methods=['POST'])
-def recognize_face():
-    try:
-        start_time = time.time()
-        data = request.json
-        if 'image' not in data:
-            return jsonify({'error': 'No image provided'}), 400
-        image_data = base64.b64decode(data['image'].split(',')[1])
-        image = Image.open(io.BytesIO(image_data))
-        processed_image = preprocess_image(image)
-        face_locations = face_recognition.face_locations(processed_image, model=FACE_DETECTION_MODEL)
-        if not face_locations:
-            return jsonify({
-                'match_found': False,
-                'message': 'No face detected',
-                'processing_time': time.time() - start_time
-            }), 200
-        unknown_encoding = face_recognition.face_encodings(processed_image, face_locations, num_jitters=NUM_JITTERS)[0]
-        known_faces = load_known_faces()
-        best_match_name, best_similarity = find_best_match(unknown_encoding, known_faces)
-        if best_match_name:
-            output_filename = save_labeled_image(processed_image, face_locations[0], best_match_name, best_similarity)
-            with open(os.path.join(KNOWN_PEOPLE_FOLDER, best_match_name), 'rb') as img_file:
-                matched_image = base64.b64encode(img_file.read()).decode('utf-8')
-            return jsonify({
-                'match_found': True,
-                'matched_name': best_match_name,
-                'matched_image': matched_image,
-                'similarity': f"{best_similarity:.2f}%",
-                'processed_image': output_filename,
-                'processing_time': time.time() - start_time
-            }), 200
-        output_filename = save_labeled_image(processed_image, face_locations[0], "Unknown", 0, is_match=False)
-        return jsonify({
-            'match_found': False,
-            'message': 'No matching face found',
-            'processed_image': output_filename,
-            'processing_time': time.time() - start_time
-        }), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
