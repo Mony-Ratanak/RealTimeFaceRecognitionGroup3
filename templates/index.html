@@ -141,6 +141,7 @@
         const matchDetails = document.getElementById('matchDetails');
         const processedImageContainer = document.getElementById('processedImageContainer');
         const processedImage = document.getElementById('processedImage');
+        const liveCameraStreamPlaceholder = document.getElementById('liveCameraStreamPlaceholder');
 
         // Drag and drop event listeners
         dropZone.addEventListener('dragover', (e) => {
@@ -230,7 +231,7 @@
             try {
                 liveCameraStream.src = 'http://127.0.0.1:5000/api/live_camera';
                 liveCameraStream.classList.remove('hidden');
-                matchPlaceholder.classList.add('hidden');
+                liveCameraStreamPlaceholder.classList.add('hidden');
                 showResult('Live camera started', 'bg-green-100 text-green-700');
             } catch (error) {
                 showResult(`Error starting live camera: ${error.message}`, 'bg-red-100 text-red-700');
