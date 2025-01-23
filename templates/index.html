@@ -20,21 +20,55 @@
             <div class="bg-white p-6 rounded-lg shadow-md">
                 <div class="flex items-center mb-6 border-b-2 border-gray-200 pb-4">
                     <i class="fas fa-upload text-blue-600 text-2xl mr-3"></i>
-                    <h2 class="text-xl font-semibold text-gray-800">Upload Image</h2>
+                    <h2 class="text-xl font-semibold text-gray-800">Upload Image/Video</h2>
                 </div>
-                <div id="dropZone" class="relative border-2 border-dashed border-gray-300 bg-gray-100 rounded-lg p-6 flex justify-center items-center transition hover:border-blue-600 min-h-[400px]">
-                    <div id="uploadPlaceholder" class="text-center text-gray-500">
-                        <i class="fas fa-cloud-upload-alt text-4xl mb-4"></i>
-                        <p>Drag & drop an image here<br>or click to upload</p>
+                <div class="flex flex-col space-y-4">
+                    <div id="dropZone" class="relative border-2 border-dashed border-gray-300 bg-gray-100 rounded-lg p-6 flex justify-center items-center transition hover:border-blue-600 min-h-[400px]">
+                        <div id="uploadPlaceholder" class="text-center text-gray-500">
+                            <i class="fas fa-cloud-upload-alt text-4xl mb-4"></i>
+                            <p>Drag & drop an image/video here<br>or click to upload</p>
+                        </div>
+                        <img id="uploadedImage" class="hidden w-full max-h-96 object-contain">
+                        <div id="uploadLoading" class="hidden absolute inset-0 bg-white bg-opacity-90 flex flex-col items-center justify-center">
+                            <div class="loader border-4 border-gray-300 border-t-blue-600 rounded-full w-12 h-12 animate-spin"></div>
+                            <p class="mt-4 text-gray-600">Processing...</p>
+                        </div>
                     </div>
-                    <img id="uploadedImage" class="hidden w-full max-h-96 object-contain">
-                    <div id="uploadLoading" class="hidden absolute inset-0 bg-white bg-opacity-90 flex flex-col items-center justify-center">
-                        <div class="loader border-4 border-gray-300 border-t-blue-600 rounded-full w-12 h-12 animate-spin"></div>
-                        <p class="mt-4 text-gray-600">Processing image...</p>
+                    
+                    <div class="flex justify-center space-x-4">
+                        <input type="file" id="fileInput" accept="image/*,video/*" class="hidden">
+                        <button onclick="document.getElementById('fileInput').click()" class="bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 focus:ring focus:ring-blue-300 flex items-center gap-2">
+                            <i class="fas fa-upload"></i>
+                            Upload
+                        </button>
+                        <button onclick="startLiveCamera()" class="bg-green-600 text-white py-2 px-6 rounded-lg hover:bg-green-700 focus:ring focus:ring-green-300 flex items-center gap-2">
+                            <i class="fas fa-video"></i>
+                            Live Camera
+                        </button>
+                        <button onclick="resetUI()" class="bg-gray-200 text-gray-700 py-2 px-6 rounded-lg hover:bg-gray-300 focus:ring focus:ring-gray-300 flex items-center gap-2">
+                            <i class="fas fa-redo"></i>
+                            Reset
+                        </button>
                     </div>
                 </div>
             </div>
-
+            <!-- Live Camera Stream -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="flex items-center mb-6 border-b-2 border-gray-200 pb-4">
+                    <i class="fas fa-video text-green-600 text-2xl mr-3"></i>
+                    <h2 class="text-xl font-semibold text-gray-800">Live Camera Stream</h2>
+                </div>
+                <div id="liveCameraStreamContainer" class="relative border-2 border-dashed border-gray-300 bg-gray-100 rounded-lg p-6 flex justify-center items-center min-h-[400px]">
+                    <div id="liveCameraStreamPlaceholder" class="absolute text-center text-gray-500">
+                        <i class="fas fa-camera text-4xl mb-4"></i>
+                        <p>Live camera stream will appear here</p>
+                    </div>
+                    <img id="liveCameraStream" class="hidden w-full max-h-96 object-contain" alt="Live Camera Stream">
+                </div>
+            </div>
+            
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
             <!-- Match Result Section -->
             <div class="bg-white p-6 rounded-lg shadow-md">
                 <div class="flex items-center mb-6 border-b-2 border-gray-200 pb-4">
@@ -70,41 +104,27 @@
                     </table>
                 </div>
             </div>
-            
 
-        </div>
-        <!-- Processed Image -->
-        <div class="bg-white p-4 rounded-lg shadow-md  w-[70%] mx-auto mt-8">
+            <!-- Processed Image -->
             <div class="bg-white p-6 rounded-lg shadow-md">
                 <div class="flex items-center mb-6 border-b-2 border-gray-200 pb-4">
                     <i class="fas fa-user-check text-blue-600 text-2xl mr-3"></i>
                     <h2 class="text-xl font-semibold text-gray-800">Processed Image</h2>
                 </div>
-                <!-- Processed Image Section -->
                 <div id="processedImageContainer" class="relative border-2 border-dashed border-gray-300 bg-gray-100 rounded-lg p-6 flex justify-center items-center min-h-[400px]">
-                    <!-- Placeholder -->
                     <div id="processedImagePlaceholder" class="absolute text-center text-gray-500">
                         <i class="fas fa-user-circle text-4xl mb-4"></i>
                         <p>Processed image will appear here</p>
                     </div>
-                    <!-- Processed Image -->
-                    <img id="processedImage" class="hidden w-full max-h-[400px] object-contain">
+                    <img id="processedImage" class="hidden w-full max-h-96 object-contain" alt="Processed Image">
                 </div>
             </div>
+        
+            
+        
         </div>
         
-
-        <div class="flex justify-center items-center mt-12 gap-4">
-            <input type="file" id="fileInput" accept="image/*" class="hidden">
-            <button onclick="document.getElementById('fileInput').click()" class="bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 focus:ring focus:ring-blue-300 flex items-center gap-2">
-                <i class="fas fa-upload"></i>
-                Upload Image
-            </button>
-            <button onclick="resetUI()" class="bg-gray-200 text-gray-700 py-2 px-6 rounded-lg hover:bg-gray-300 focus:ring focus:ring-gray-300 flex items-center gap-2">
-                <i class="fas fa-redo"></i>
-                Reset
-            </button>
-        </div>
+        
 
         <div id="resultPanel" class="hidden mt-6 py-4 px-6 rounded-lg text-center"></div>
     </div>
@@ -114,6 +134,7 @@
         const fileInput = document.getElementById('fileInput');
         const uploadedImage = document.getElementById('uploadedImage');
         const matchedImage = document.getElementById('matchedImage');
+        const liveCameraStream = document.getElementById('liveCameraStream');
         const uploadLoading = document.getElementById('uploadLoading');
         const resultPanel = document.getElementById('resultPanel');
         const matchPlaceholder = document.getElementById('matchPlaceholder');
@@ -121,6 +142,7 @@
         const processedImageContainer = document.getElementById('processedImageContainer');
         const processedImage = document.getElementById('processedImage');
 
+        // Drag and drop event listeners
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
             dropZone.classList.add('border-blue-600', 'bg-blue-50');
@@ -134,8 +156,8 @@
             e.preventDefault();
             dropZone.classList.remove('border-blue-600', 'bg-blue-50');
             const file = e.dataTransfer.files[0];
-            if (file && file.type.startsWith('image/')) {
-                handleImageUpload(file);
+            if (file) {
+                handleFileUpload(file);
             }
         });
 
@@ -146,11 +168,11 @@
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
-                handleImageUpload(file);
+                handleFileUpload(file);
             }
         });
 
-        async function handleImageUpload(file) {
+        async function handleFileUpload(file) {
             try {
                 resetUI();
                 showLoading(true);
@@ -163,21 +185,66 @@
                 };
                 reader.readAsDataURL(file);
 
-                const base64Image = await readFileAsBase64(file);
-                const response = await recognizeFace(base64Image);
-
-                if (response.match_found) {
-                    showMatch(response);
-                    showProcessedFromPath(response.processed_image);
-                    showResult(`Match found with ${response.similarity}`, 'bg-green-100 text-green-700');
-                } else {
-                    showProcessedFromPath(response.processed_image);
-                    showResult(response.message, 'bg-red-100 text-red-700');
+                // Determine if it's an image or video
+                if (file.type.startsWith('image/')) {
+                    const base64Image = await readFileAsBase64(file);
+                    const response = await recognizeFace(base64Image);
+                    handleRecognitionResponse(response);
+                } else if (file.type.startsWith('video/')) {
+                    const response = await uploadVideo(file);
+                    handleVideoUploadResponse(response);
                 }
             } catch (error) {
                 showResult(`Error: ${error.message}`, 'bg-red-100 text-red-700');
             } finally {
                 showLoading(false);
+            }
+        }
+
+        async function uploadVideo(file) {
+            const formData = new FormData();
+            formData.append('video', file);
+
+            const response = await fetch('http://127.0.0.1:5000/api/upload_video', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            return response.json();
+        }
+
+        function handleVideoUploadResponse(response) {
+            if (response.detected_people && response.detected_people.length > 0) {
+                showResult(`Detected people: ${response.detected_people.join(', ')}`, 'bg-green-100 text-green-700');
+            } else {
+                showResult('No known faces detected', 'bg-yellow-100 text-yellow-700');
+            }
+        }
+
+        async function startLiveCamera() {
+            resetUI();
+            try {
+                liveCameraStream.src = 'http://127.0.0.1:5000/api/live_camera';
+                liveCameraStream.classList.remove('hidden');
+                matchPlaceholder.classList.add('hidden');
+                showResult('Live camera started', 'bg-green-100 text-green-700');
+            } catch (error) {
+                showResult(`Error starting live camera: ${error.message}`, 'bg-red-100 text-red-700');
+            }
+        }
+
+        function handleRecognitionResponse(response) {
+            if (response.match_found) {
+                showMatch(response);
+                showProcessedFromPath(response.processed_image);
+                showResult(`Match found with ${response.similarity}`, 'bg-green-100 text-green-700');
+            } else {
+                showProcessedFromPath(response.processed_image);
+                showResult(response.message, 'bg-red-100 text-red-700');
             }
         }
 
@@ -210,7 +277,10 @@
             matchedImage.src = `data:image/jpeg;base64,${response.matched_image}`;
             matchedImage.classList.remove('hidden');
             matchPlaceholder.classList.add('hidden');
-            document.getElementById('matchName').textContent = response.matched_name;
+            
+            const matchedName = response.matched_name.split('.')[0];
+            
+            document.getElementById('matchName').textContent = matchedName;
             document.getElementById('matchConfidence').textContent = response.similarity;
             document.getElementById('confidenceFill').style.width = `${response.similarity}%`;
             document.getElementById('matchTime').textContent = `${response.processing_time} seconds`;
@@ -223,8 +293,8 @@
         
             try {
                 processedImage.src = processedImagePath;
-                processedImage.classList.remove('hidden'); // Show the processed image
-                processedImagePlaceholder.classList.add('hidden'); // Hide the placeholder text
+                processedImage.classList.remove('hidden');
+                processedImagePlaceholder.classList.add('hidden');
             } catch (error) {
                 console.error('Error displaying processed image:', error);
             }
@@ -243,9 +313,21 @@
         function resetUI() {
             const processedImage = document.getElementById('processedImage');
             const processedImagePlaceholder = document.getElementById('processedImagePlaceholder');
-        
-            processedImage.classList.add('hidden'); // Hide the processed image
-            processedImagePlaceholder.classList.remove('hidden'); // Show the placeholder text
+            const matchedImage = document.getElementById('matchedImage');
+            const liveCameraStream = document.getElementById('liveCameraStream');
+            const matchDetails = document.getElementById('matchDetails');
+            const resultPanel = document.getElementById('resultPanel');
+            const uploadedImage = document.getElementById('uploadedImage');
+            const dropZonePlaceholder = dropZone.querySelector('.text-center');
+
+            processedImage.classList.add('hidden');
+            processedImagePlaceholder.classList.remove('hidden');
+            matchedImage.classList.add('hidden');
+            liveCameraStream.classList.add('hidden');
+            matchDetails.classList.add('hidden');
+            resultPanel.classList.add('hidden');
+            uploadedImage.classList.add('hidden');
+            dropZonePlaceholder.classList.remove('hidden');
         }
     </script>
 </body>

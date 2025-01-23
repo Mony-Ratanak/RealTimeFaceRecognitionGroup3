@@ -23,7 +23,7 @@ KNOWN_PEOPLE_FOLDER = 'known_people'
 PROCESSED_FOLDER = 'processed_images'
 ENCODINGS_FILE = 'known_encodings.pkl'
 ATTENDANCE_FILE = 'Attendance_log.csv'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'mp4'}
 FACE_DETECTION_MODEL = 'hog'
 DISTANCE_THRESHOLD = 0.45
 NUM_JITTERS = 1
@@ -88,6 +88,62 @@ def serve_processed_image(filename):
     except Exception as e:
         return jsonify({'error': f"File not found: {str(e)}"}), 404
 
+@app.route('/api/upload_video', methods=['POST'])
+def upload_video():
+    """Handle video upload and face recognition"""
+    try:
+        start_time = time.time()
+        if 'video' not in request.files:
+            return jsonify({'error': 'No video file'}), 400
+        
+        video_file = request.files['video']
+        filename = secure_filename(video_file.filename)
+        video_path = os.path.join(UPLOAD_FOLDER, filename)
+        video_file.save(video_path)
+
+        # Open the video
+        cap = cv2.VideoCapture(video_path)
+        known_faces = load_known_faces()
+        detected_people = {}
+
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            # Convert the frame to RGB
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            
+            # Detect faces
+            face_locations = face_recognition.face_locations(rgb_frame, model=FACE_DETECTION_MODEL)
+            
+            if face_locations:
+                face_encodings = face_recognition.face_encodings(rgb_frame, face_locations, num_jitters=NUM_JITTERS)
+                
+                for (top, right, bottom, left), encoding in zip(face_locations, face_encodings):
+                    best_match_name, best_similarity = find_best_match(encoding, known_faces)
+                    
+                    if best_match_name:
+                        # Log each first-time detection
+                        if best_match_name not in detected_people:
+                            log_attendance(best_match_name)
+                            detected_people[best_match_name] = True
+                        
+                        save_labeled_image(frame, (top, right, bottom, left), best_match_name, best_similarity)
+                    else:
+                        save_labeled_image(frame, (top, right, bottom, left), "Unknown", 0, is_match=False)
+
+        cap.release()
+        os.remove(video_path)  # Clean up uploaded video
+
+        return jsonify({
+            'detected_people': list(detected_people.keys()),
+            'processing_time': time.time() - start_time
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/recognize', methods=['POST'])
 def recognize_face():
     try:
@@ -95,25 +151,33 @@ def recognize_face():
         data = request.json
         if 'image' not in data:
             return jsonify({'error': 'No image provided'}), 400
+        
         image_data = base64.b64decode(data['image'].split(',')[1])
         image = Image.open(io.BytesIO(image_data))
         processed_image = preprocess_image(image)
+        
         face_locations = face_recognition.face_locations(processed_image, model=FACE_DETECTION_MODEL)
+        
         if not face_locations:
             return jsonify({
                 'match_found': False,
                 'message': 'No face detected',
                 'processing_time': time.time() - start_time
             }), 200
+
         unknown_encoding = face_recognition.face_encodings(processed_image, face_locations, num_jitters=NUM_JITTERS)[0]
         known_faces = load_known_faces()
+        
         best_match_name, best_similarity = find_best_match(unknown_encoding, known_faces)
+        
         if best_match_name:
             # Log attendance
             log_attendance(best_match_name)
             output_filename = save_labeled_image(processed_image, face_locations[0], best_match_name, best_similarity)
+            
             with open(os.path.join(KNOWN_PEOPLE_FOLDER, best_match_name), 'rb') as img_file:
                 matched_image = base64.b64encode(img_file.read()).decode('utf-8')
+            
             return jsonify({
                 'match_found': True,
                 'matched_name': best_match_name,
@@ -122,6 +186,7 @@ def recognize_face():
                 'processed_image': f"http://127.0.0.1:5000/processed_images/{output_filename}",
                 'processing_time': time.time() - start_time
             }), 200
+        
         output_filename = save_labeled_image(processed_image, face_locations[0], "Unknown", 0, is_match=False)
         return jsonify({
             'match_found': False,
@@ -129,8 +194,62 @@ def recognize_face():
             'processed_image': f"http://127.0.0.1:5000/processed_images/{output_filename}",
             'processing_time': time.time() - start_time
         }), 200
+    
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/live_camera', methods=['GET'])
+def live_camera():
+    """Open live camera for face recognition"""
+    def generate_frames():
+        cap = cv2.VideoCapture(0)  # Open default camera
+        known_faces = load_known_faces()
+
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            # Convert the frame to RGB
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            
+            # Detect faces
+            face_locations = face_recognition.face_locations(rgb_frame, model=FACE_DETECTION_MODEL)
+            
+            if face_locations:
+                face_encodings = face_recognition.face_encodings(rgb_frame, face_locations, num_jitters=NUM_JITTERS)
+                
+                for (top, right, bottom, left), encoding in zip(face_locations, face_encodings):
+                    best_match_name, best_similarity = find_best_match(encoding, known_faces)
+                    
+                    color = (0, 255, 0) if best_match_name else (0, 0, 255)
+                    label = best_match_name if best_match_name else "Unknown"
+                    
+                    # Draw rectangle
+                    cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
+                    
+                    # Put label
+                    label_text = f"{label} ({best_similarity:.1f}%)" if best_match_name else "Unknown"
+                    cv2.putText(frame, label_text, (left, top - 10), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                    
+                    # Log attendance for known faces
+                    if best_match_name:
+                        log_attendance(best_match_name)
+
+            # Convert frame to JPEG
+            ret, buffer = cv2.imencode('.jpg', frame)
+            frame_bytes = buffer.tobytes()
+            
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+
+        cap.release()
+
+    return app.response_class(
+        generate_frames(),
+        mimetype='multipart/x-mixed-replace; boundary=frame'
+    )
 
 def load_known_faces():
     """Load face encodings from cache or file"""
@@ -138,10 +257,12 @@ def load_known_faces():
     with cache_lock:
         if known_face_cache:
             return known_face_cache
+        
         if os.path.exists(ENCODINGS_FILE):
             with open(ENCODINGS_FILE, 'rb') as f:
                 known_face_cache = pickle.load(f)
                 return known_face_cache
+
         known_faces = {}
         for filename in os.listdir(KNOWN_PEOPLE_FOLDER):
             if allowed_file(filename):
@@ -154,21 +275,26 @@ def load_known_faces():
                 except Exception as e:
                     print(f"Error loading {filename}: {str(e)}")
                     continue
+
         known_face_cache = known_faces
         with open(ENCODINGS_FILE, 'wb') as f:
             pickle.dump(known_faces, f)
+        
         return known_faces
 
 def find_best_match(unknown_encoding, known_faces):
     """Find best match for the face"""
     best_match_name = None
     best_similarity = 0
+    
     for name, encoding in known_faces.items():
         face_distance = face_recognition.face_distance([encoding], unknown_encoding)[0]
         similarity = (1 - face_distance) * 100
+        
         if similarity > best_similarity and similarity > (1 - DISTANCE_THRESHOLD) * 100:
             best_match_name = name
             best_similarity = similarity
+    
     return best_match_name, best_similarity
 
 @app.route('/')
