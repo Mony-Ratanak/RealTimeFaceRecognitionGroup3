@@ -223,7 +223,7 @@ def live_camera():
                     best_match_name, best_similarity = find_best_match(encoding, known_faces)
                     
                     color = (0, 255, 0) if best_match_name else (0, 0, 255)
-                    label = best_match_name if best_match_name else "Unknown"
+                    label = best_match_name.split('.')[0] if best_match_name else "Unknown"
                     
                     # Draw rectangle
                     cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
