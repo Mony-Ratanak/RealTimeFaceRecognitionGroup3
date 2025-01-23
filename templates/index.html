@@ -65,6 +65,11 @@
                     </div>
                     <img id="liveCameraStream" class="hidden w-full max-h-96 object-contain" alt="Live Camera Stream">
                 </div>
+                <div class="flex justify-center space-x-4 mt-4">
+                    <button id="stopCameraButton" class="bg-red-500 text-white py-2 px-6 rounded-lg hover:bg-red-700 focus:ring focus:ring-green-300 flex items-center gap-2">
+                        Stop Camera
+                    </button>
+                </div>
             </div>
             
         </div>
@@ -142,6 +147,7 @@
         const processedImageContainer = document.getElementById('processedImageContainer');
         const processedImage = document.getElementById('processedImage');
         const liveCameraStreamPlaceholder = document.getElementById('liveCameraStreamPlaceholder');
+        const stopCameraButton = document.getElementById('stopCameraButton');
 
         // Drag and drop event listeners
         dropZone.addEventListener('dragover', (e) => {
@@ -232,11 +238,23 @@
                 liveCameraStream.src = 'http://127.0.0.1:5000/api/live_camera';
                 liveCameraStream.classList.remove('hidden');
                 liveCameraStreamPlaceholder.classList.add('hidden');
+                stopCameraButton.classList.remove('hidden');
+                stopCameraButton.disabled = false;
                 showResult('Live camera started', 'bg-green-100 text-green-700');
             } catch (error) {
                 showResult(`Error starting live camera: ${error.message}`, 'bg-red-100 text-red-700');
             }
         }
+
+        stopCameraButton.addEventListener('click', () => {
+            liveCameraStream.src = ''; 
+            liveCameraStream.classList.add('hidden');
+            liveCameraStreamPlaceholder.classList.remove('hidden');
+            stopCameraButton.classList.add('hidden');
+            stopCameraButton.disabled = true;
+        });
+        // Initially disable the stop button
+        stopCameraButton.classList.add('hidden');
 
         function handleRecognitionResponse(response) {
             if (response.match_found) {
