@@ -1,3 +1,5 @@
 images
 node_modules
-./Attendance_log.csv
+Attendance_log.csv
+processed_images
+test.py

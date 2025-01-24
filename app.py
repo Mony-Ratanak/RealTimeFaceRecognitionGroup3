@@ -82,6 +82,11 @@ def save_labeled_image(image, face_location, label, similarity, is_match=True):
     top, right, bottom, left = face_location
     color = (0, 255, 0) if is_match else (0, 0, 255)
     label = label.split('.')[0]  # Remove .jpg or other extensions
+    
+    student = find_student(label)
+    display_name = student[1] + " : " + student[0] if student else label
+    label = display_name
+    
     cv2.rectangle(img, (left, top), (right, bottom), color, 2)
     label_text = f"{label} ({similarity:.1f}%)"
     cv2.putText(img, label_text, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
@@ -194,7 +199,6 @@ def recognize_face():
         best_match_name, best_similarity = find_best_match(unknown_encoding, known_faces)
         
         if best_match_name:
-            print(best_match_name.split('.')[0])
             student = find_student(best_match_name.split('.')[0])
             name = student[1] if student else best_match_name
             id = student[0] if student else best_match_name
@@ -231,7 +235,7 @@ def recognize_face():
 @app.route('/api/live_camera', methods=['GET'])
 def live_camera():
     def generate_frames():
-        cap = cv2.VideoCapture(1)
+        cap = cv2.VideoCapture(0)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
         
@@ -269,7 +273,7 @@ def live_camera():
                     if best_match_name:
                         label = best_match_name.split('.')[0]
                         student = find_student(label)
-                        display_name = student[1] if student else label
+                        display_name = student[1] + " : " + student[0] if student else label
                     else:
                         display_name = "Unknown"
 
@@ -310,6 +314,7 @@ def load_known_faces():
                 known_face_cache = pickle.load(f)
                 return known_face_cache
 
+        print(filename)
         known_faces = {}
         for filename in os.listdir(KNOWN_PEOPLE_FOLDER):
             if allowed_file(filename):
