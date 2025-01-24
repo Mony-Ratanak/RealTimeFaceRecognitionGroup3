@@ -40,6 +40,29 @@ cache_lock = threading.Lock()
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def student_list():
+    # Open the CSV file in read mode
+    with open('Student_list/Student-list.csv', mode='r') as file:
+        data = []
+        reader = csv.reader(file)
+        
+        i = 0
+        # Loop through the rows and collect data
+        for row in reader:
+            if i != 0:  # Skip header
+                data.append(row)
+            i += 1
+        return data
+
+def find_student(student_id):
+    # Get the student list
+    students = student_list()
+    
+    for student in students:
+        if student_id in student:
+            return student
+    return None
+
 def preprocess_image(image):
     """Optimized image preprocessing"""
     if image.mode != 'RGB':
@@ -171,6 +194,12 @@ def recognize_face():
         best_match_name, best_similarity = find_best_match(unknown_encoding, known_faces)
         
         if best_match_name:
+            print(best_match_name.split('.')[0])
+            student = find_student(best_match_name.split('.')[0])
+            name = student[1] if student else best_match_name
+            id = student[0] if student else best_match_name
+            print(name, id)
+            
             # Log attendance
             log_attendance(best_match_name)
             output_filename = save_labeled_image(processed_image, face_locations[0], best_match_name, best_similarity)
@@ -180,7 +209,8 @@ def recognize_face():
             
             return jsonify({
                 'match_found': True,
-                'matched_name': best_match_name,
+                'matched_name': name,
+                'matched_id': id,
                 'matched_image': matched_image,
                 'similarity': f"{best_similarity:.2f}%",
                 'processed_image': f"http://127.0.0.1:5000/processed_images/{output_filename}",
@@ -223,8 +253,10 @@ def live_camera():
                     best_match_name, best_similarity = find_best_match(encoding, known_faces)
                     
                     color = (0, 255, 0) if best_match_name else (0, 0, 255)
-                    label = best_match_name if best_match_name else "Unknown"
                     
+                    label = best_match_name.split('.')[0] if best_match_name else "Unknown"
+                    student = find_student(label)
+                    label = student[1]+" : "+student[0] if student else label
                     # Draw rectangle
                     cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
                     

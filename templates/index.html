@@ -94,6 +94,10 @@
                             <td id="matchName">-</td>
                         </tr>
                         <tr>
+                            <td class="font-medium text-gray-500 w-1/3">ID:</td>
+                            <td id="matchId">-</td>
+                        </tr>
+                        <tr>
                             <td class="font-medium text-gray-500">Confidence:</td>
                             <td>
                                 <div id="matchConfidence">-</div>
@@ -298,8 +302,10 @@
             matchPlaceholder.classList.add('hidden');
             
             const matchedName = response.matched_name.split('.')[0];
+            const matchedId = response.matched_id;
             
             document.getElementById('matchName').textContent = matchedName;
+            document.getElementById('matchId').textContent = matchedId;
             document.getElementById('matchConfidence').textContent = response.similarity;
             document.getElementById('confidenceFill').style.width = `${response.similarity}%`;
             document.getElementById('matchTime').textContent = `${response.processing_time} seconds`;
