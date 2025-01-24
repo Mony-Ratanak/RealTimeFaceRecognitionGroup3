@@ -98,6 +98,10 @@
                             <td id="matchId">-</td>
                         </tr>
                         <tr>
+                            <td class="font-medium text-gray-500 w-1/3">Group:</td>
+                            <td id="matchGroup">-</td>
+                        </tr>
+                        <tr>
                             <td class="font-medium text-gray-500">Confidence:</td>
                             <td>
                                 <div id="matchConfidence">-</div>
@@ -305,6 +309,7 @@
             const matchedId = response.matched_id;
             
             document.getElementById('matchName').textContent = matchedName;
+            document.getElementById('matchGroup').textContent = response.group;
             document.getElementById('matchId').textContent = matchedId;
             document.getElementById('matchConfidence').textContent = response.similarity;
             document.getElementById('confidenceFill').style.width = `${response.similarity}%`;

@@ -29,6 +29,34 @@ DISTANCE_THRESHOLD = 0.45
 NUM_JITTERS = 1
 MAX_IMAGE_SIZE = 640
 
+# read cvs
+def read_csv_student_list():
+    # Path to your CSV file
+    csv_file_path = 'Student_list\Student-list.csv'
+
+    # Dictionary to store the data
+    students_data = {}
+
+    # Reading the CSV and storing the data
+    with open(csv_file_path, mode='r') as file:
+        # Create a CSV reader object
+        csv_reader = csv.DictReader(file)
+        
+        # Iterate over each row in the CSV
+        for row in csv_reader:
+            # Use ID-Card as the key and store other data in a nested dictionary
+            students_data[row['ID-Card']] = {
+                'Student Name': row['Student Name'],
+                'Year': row['Year'],
+                'Department-Code': row['Department-Code'],
+                'Semester': row['Semester'],
+                'Group': row['Group']
+            }
+
+    # Now students_data contains all the CSV data in a dictionary format
+    return students_data
+
+STUDENTS_LIST = read_csv_student_list()
 # Create necessary folders
 for folder in [UPLOAD_FOLDER, KNOWN_PEOPLE_FOLDER, PROCESSED_FOLDER]:
     os.makedirs(folder, exist_ok=True)
@@ -215,6 +243,7 @@ def recognize_face():
                 'match_found': True,
                 'matched_name': name,
                 'matched_id': id,
+                'group': student[3]+"-"+student[5],
                 'matched_image': matched_image,
                 'similarity': f"{best_similarity:.2f}%",
                 'processed_image': f"http://127.0.0.1:5000/processed_images/{output_filename}",
@@ -354,4 +383,4 @@ def home():
     return render_template('index.html')
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5000, threaded=True)
