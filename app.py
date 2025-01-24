@@ -230,46 +230,62 @@ def recognize_face():
 
 @app.route('/api/live_camera', methods=['GET'])
 def live_camera():
-    """Open live camera for face recognition"""
     def generate_frames():
-        cap = cv2.VideoCapture(1)  # Open default camera
+        cap = cv2.VideoCapture(1)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        
         known_faces = load_known_faces()
+        processed_names = {}
 
         while True:
             ret, frame = cap.read()
             if not ret:
                 break
 
-            # Convert the frame to RGB
+            # Convert to RGB immediately and detect faces
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             
-            # Detect faces
-            face_locations = face_recognition.face_locations(rgb_frame, model=FACE_DETECTION_MODEL)
+            # Use smaller processing size with quickest model
+            face_locations = face_recognition.face_locations(
+                rgb_frame, 
+                model='hog',  # Fastest detection model
+                number_of_times_to_upsample=0  # Reduce processing overhead
+            )
             
             if face_locations:
-                face_encodings = face_recognition.face_encodings(rgb_frame, face_locations, num_jitters=NUM_JITTERS)
+                face_encodings = face_recognition.face_encodings(
+                    rgb_frame, 
+                    face_locations, 
+                    num_jitters=1  # Minimal jitters for speed
+                )
                 
                 for (top, right, bottom, left), encoding in zip(face_locations, face_encodings):
                     best_match_name, best_similarity = find_best_match(encoding, known_faces)
                     
                     color = (0, 255, 0) if best_match_name else (0, 0, 255)
                     
-                    label = best_match_name.split('.')[0] if best_match_name else "Unknown"
-                    student = find_student(label)
-                    label = student[1]+" : "+student[0] if student else label
-                    # Draw rectangle
+                    # Quick name resolution
+                    if best_match_name:
+                        label = best_match_name.split('.')[0]
+                        student = find_student(label)
+                        display_name = student[1] if student else label
+                    else:
+                        display_name = "Unknown"
+
                     cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
                     
-                    # Put label
-                    label_text = f"{label} ({best_similarity:.1f}%)" if best_match_name else "Unknown"
+                    label_text = f"{display_name} ({best_similarity:.1f}%)" if best_match_name else "Unknown"
                     cv2.putText(frame, label_text, (left, top - 10), 
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
                     
-                    # Log attendance for known faces
-                    if best_match_name:
+                    # Efficient logging
+                    current_time = time.time()
+                    if best_match_name and (best_match_name not in processed_names or 
+                        current_time - processed_names.get(best_match_name, 0) > 300):
                         log_attendance(best_match_name)
+                        processed_names[best_match_name] = current_time
 
-            # Convert frame to JPEG
             ret, buffer = cv2.imencode('.jpg', frame)
             frame_bytes = buffer.tobytes()
             
@@ -282,7 +298,6 @@ def live_camera():
         generate_frames(),
         mimetype='multipart/x-mixed-replace; boundary=frame'
     )
-
 def load_known_faces():
     """Load face encodings from cache or file"""
     global known_face_cache
