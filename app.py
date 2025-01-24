@@ -202,7 +202,7 @@ def recognize_face():
 def live_camera():
     """Open live camera for face recognition"""
     def generate_frames():
-        cap = cv2.VideoCapture(0)  # Open default camera
+        cap = cv2.VideoCapture(1)  # Open default camera
         known_faces = load_known_faces()
 
         while True:
