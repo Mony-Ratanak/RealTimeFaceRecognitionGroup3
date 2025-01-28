@@ -1,8 +1,9 @@
-from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask import Flask, request, jsonify, render_template, send_file, send_from_directory
 from flask_cors import CORS
 import face_recognition
 import os
 from datetime import datetime
+import socketio
 from werkzeug.utils import secure_filename
 import numpy as np
 import base64
@@ -13,6 +14,7 @@ import threading
 import pickle
 import time
 import csv
+import pandas as pd
 
 app = Flask(__name__)
 CORS(app)
@@ -29,34 +31,6 @@ DISTANCE_THRESHOLD = 0.45
 NUM_JITTERS = 1
 MAX_IMAGE_SIZE = 640
 
-# read cvs
-def read_csv_student_list():
-    # Path to your CSV file
-    csv_file_path = 'Student_list\Student-list.csv'
-
-    # Dictionary to store the data
-    students_data = {}
-
-    # Reading the CSV and storing the data
-    with open(csv_file_path, mode='r') as file:
-        # Create a CSV reader object
-        csv_reader = csv.DictReader(file)
-        
-        # Iterate over each row in the CSV
-        for row in csv_reader:
-            # Use ID-Card as the key and store other data in a nested dictionary
-            students_data[row['ID-Card']] = {
-                'Student Name': row['Student Name'],
-                'Year': row['Year'],
-                'Department-Code': row['Department-Code'],
-                'Semester': row['Semester'],
-                'Group': row['Group']
-            }
-
-    # Now students_data contains all the CSV data in a dictionary format
-    return students_data
-
-STUDENTS_LIST = read_csv_student_list()
 # Create necessary folders
 for folder in [UPLOAD_FOLDER, KNOWN_PEOPLE_FOLDER, PROCESSED_FOLDER]:
     os.makedirs(folder, exist_ok=True)
@@ -83,13 +57,14 @@ def student_list():
         return data
 
 def find_student(student_id):
-    # Get the student list
-    students = student_list()
+    """Find the student from the student list by ID"""
+    students = student_list()  # Get the list of students from the CSV
     
     for student in students:
-        if student_id in student:
+        if student_id in student:  # Match based on student_id (or label)
             return student
     return None
+
 
 def preprocess_image(image):
     """Optimized image preprocessing"""
@@ -125,16 +100,41 @@ def save_labeled_image(image, face_location, label, similarity, is_match=True):
     return filename
 
 def log_attendance(name):
-    """Log attendance to a CSV file."""
+    """Log attendance to a CSV file with Student Name and additional details from studentList.csv."""
+    # Find the student using the name (remove the extension)
+    student = find_student(name.split('.')[0])
+    
+    if student:
+        student_id = student[0]
+        student_name = student[1]
+        year = student[2]  # Year
+        department_code = student[3]  # Department-Code
+        semester = student[4]  # Semester
+        group = student[5]  # Group
+    
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    email = f"{name.split('.')[0]}@itc.edu.kh"
     file_exists = os.path.isfile(ATTENDANCE_FILE)
     name = name.split('.')[0]  # Remove .jpg or other extensions
+    
+    # Open the attendance CSV file and append the log
     with open(ATTENDANCE_FILE, 'a', newline='') as csvfile:
-        fieldnames = ['Name', 'Timestamp']
+        fieldnames = ['ID', 'Student Name', 'Email','Year', 'Department-Code', 'Semester', 'Group', 'Timestamp']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         if not file_exists:
             writer.writeheader()  # Write header only once
-        writer.writerow({'Name': name, 'Timestamp': timestamp})
+        writer.writerow({
+            'ID': student_id,
+            'Student Name': student_name,
+            'Email': email,
+            'Year': year,
+            'Department-Code': department_code,
+            'Semester': semester,
+            'Group': group,
+            'Timestamp': timestamp,
+        })
+
+
 
 @app.route('/processed_images/<filename>')
 def serve_processed_image(filename):
@@ -243,7 +243,6 @@ def recognize_face():
                 'match_found': True,
                 'matched_name': name,
                 'matched_id': id,
-                'group': student[3]+"-"+student[5],
                 'matched_image': matched_image,
                 'similarity': f"{best_similarity:.2f}%",
                 'processed_image': f"http://127.0.0.1:5000/processed_images/{output_filename}",
@@ -282,8 +281,8 @@ def live_camera():
             # Use smaller processing size with quickest model
             face_locations = face_recognition.face_locations(
                 rgb_frame, 
-                model='hog',  # Fastest detection model
-                number_of_times_to_upsample=0  # Reduce processing overhead
+                model='hog', 
+                number_of_times_to_upsample=0 
             )
             
             if face_locations:
@@ -311,6 +310,7 @@ def live_camera():
                     label_text = f"{display_name} ({best_similarity:.1f}%)" if best_match_name else "Unknown"
                     cv2.putText(frame, label_text, (left, top - 10), 
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                    
                     
                     # Efficient logging
                     current_time = time.time()
@@ -378,9 +378,36 @@ def find_best_match(unknown_encoding, known_faces):
     
     return best_match_name, best_similarity
 
+
+@app.route('/api/export_attendance_to_excel', methods=['GET'])
+def export_attendance_to_excel():
+    # Path to the CSV file
+    csv_file = 'Attendance_log.csv'
+    
+    try:
+        # Check if the file exists
+        if not os.path.exists(csv_file):
+            return "CSV file not found", 404
+
+        # Read the CSV into a pandas DataFrame
+        df = pd.read_csv(csv_file)
+
+        # Convert the DataFrame to an Excel file with headers
+        excel_file = 'attendance.xlsx'
+        df.to_excel(excel_file, index=False, engine='openpyxl')  # Use default behavior (with headers)
+
+        # Return the Excel file for download
+        return send_file(excel_file, as_attachment=True)
+
+    except Exception as e:
+        # Log the error for better debugging
+        app.logger.error(f"Error exporting CSV to Excel: {e}")
+        return f"Error exporting CSV to Excel: {e}", 500
+
+
 @app.route('/')
 def home():
     return render_template('index.html')
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000, threaded=True)
+    app.run(debug=True, port=5000)
