@@ -344,7 +344,7 @@
             const matchedId = response.matched_id;
             
             document.getElementById('matchName').textContent = matchedName;
-            document.getElementById('matchGroup').textContent = response.group;
+            document.getElementById('matchGroup').textContent = response.matched_group;
             document.getElementById('matchId').textContent = matchedId;
             document.getElementById('matchConfidence').textContent = response.similarity;
             document.getElementById('confidenceFill').style.width = `${response.similarity}%`;
