@@ -69,6 +69,9 @@
                     <button id="stopCameraButton" class="bg-red-500 text-white py-2 px-6 rounded-lg hover:bg-red-700 focus:ring focus:ring-green-300 flex items-center gap-2">
                         Stop Camera
                     </button>
+                    <button id="exportButton" class="bg-green-500 text-white py-2 px-6 rounded-lg hover:bg-red-700 focus:ring focus:ring-green-300 flex items-center gap-2">
+                        Export to Excel
+                    </button>
                 </div>
             </div>
             
@@ -96,6 +99,10 @@
                         <tr>
                             <td class="font-medium text-gray-500 w-1/3">ID:</td>
                             <td id="matchId">-</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium text-gray-500 w-1/3">Group:</td>
+                            <td id="matchGroup">-</td>
                         </tr>
                         <tr>
                             <td class="font-medium text-gray-500">Confidence:</td>
@@ -128,9 +135,6 @@
                     <img id="processedImage" class="hidden w-full max-h-96 object-contain" alt="Processed Image">
                 </div>
             </div>
-        
-            
-        
         </div>
         
         
@@ -152,6 +156,36 @@
         const processedImage = document.getElementById('processedImage');
         const liveCameraStreamPlaceholder = document.getElementById('liveCameraStreamPlaceholder');
         const stopCameraButton = document.getElementById('stopCameraButton');
+        const ExportExcelButton = document.getElementById('exportButton');
+
+        document.getElementById('exportButton').addEventListener('click', function () {
+            // Send a GET request to the Flask API for the attendance data export
+            fetch('/api/export_attendance_to_excel', {
+                method: 'GET',
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                } else {
+                    throw new Error('Error exporting attendance data');
+                }
+            })
+            .then(blob => {
+                // Create a link element to prompt the user to download the file
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.href = url;
+                link.download = 'attendance.xlsx'; 
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link); 
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to export attendance data. Please try again.');
+            });
+        });
+
 
         // Drag and drop event listeners
         dropZone.addEventListener('dragover', (e) => {
@@ -244,6 +278,8 @@
                 liveCameraStreamPlaceholder.classList.add('hidden');
                 stopCameraButton.classList.remove('hidden');
                 stopCameraButton.disabled = false;
+                ExportExcelButton.classList.remove('hidden');
+                ExportExcelButton.disabled = false;
                 showResult('Live camera started', 'bg-green-100 text-green-700');
             } catch (error) {
                 showResult(`Error starting live camera: ${error.message}`, 'bg-red-100 text-red-700');
@@ -259,6 +295,9 @@
         });
         // Initially disable the stop button
         stopCameraButton.classList.add('hidden');
+
+        // Initially disable the stop button
+        ExportExcelButton.classList.add('hidden');
 
         function handleRecognitionResponse(response) {
             if (response.match_found) {
@@ -305,6 +344,7 @@
             const matchedId = response.matched_id;
             
             document.getElementById('matchName').textContent = matchedName;
+            document.getElementById('matchGroup').textContent = response.group;
             document.getElementById('matchId').textContent = matchedId;
             document.getElementById('matchConfidence').textContent = response.similarity;
             document.getElementById('confidenceFill').style.width = `${response.similarity}%`;
@@ -355,5 +395,6 @@
             dropZonePlaceholder.classList.remove('hidden');
         }
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
 </body>
 </html>
