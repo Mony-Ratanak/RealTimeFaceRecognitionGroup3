@@ -230,6 +230,7 @@ def recognize_face():
             student = find_student(best_match_name.split('.')[0])
             name = student[1] if student else best_match_name
             id = student[0] if student else best_match_name
+            group = student[5] if student else best_match_name
             print(name, id)
             
             # Log attendance
@@ -243,6 +244,7 @@ def recognize_face():
                 'match_found': True,
                 'matched_name': name,
                 'matched_id': id,
+                'matched_group': group,
                 'matched_image': matched_image,
                 'similarity': f"{best_similarity:.2f}%",
                 'processed_image': f"http://127.0.0.1:5000/processed_images/{output_filename}",
